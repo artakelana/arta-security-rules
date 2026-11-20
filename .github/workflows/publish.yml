@@ -1,0 +1,61 @@
+name: Validate and publish signed rules
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths: ['rules/**', 'client/**', 'tools/**', '.github/workflows/publish.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1,4'
+permissions:
+  contents: read
+concurrency:
+  group: arta-rules-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Validate reviewed schema and protocol
+        run: |
+          php -r 'if (!function_exists("sodium_crypto_sign_verify_detached")) exit(1);'
+          php tools/validate.php rules/rules.json
+          php tools/test-protocol.php
+          find client tools -name '*.php' -print0 | xargs -0 -n1 php -l
+  publish:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check publisher setup
+        id: publisher
+        env:
+          ARTA_KEY: ${{ secrets.ARTA_RULE_SIGNING_KEY }}
+        run: |
+          if [ -n "$ARTA_KEY" ]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'Signing key not configured; publication skipped.'
+          fi
+      - name: Sign and self-verify package
+        if: steps.publisher.outputs.ready == 'true'
+        env:
+          ARTA_RULE_SIGNING_KEY: ${{ secrets.ARTA_RULE_SIGNING_KEY }}
+        run: |
+          php tools/sign.php rules/rules.json dist
+      - name: Publish release and stable channel
+        if: steps.publisher.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 tools/publish.py

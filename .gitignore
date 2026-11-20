@@ -1,0 +1,5 @@
+*.private.json
+dist/
+*.key
+.env
+publisher-public-key.local.json

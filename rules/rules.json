@@ -1,0 +1,22 @@
+[
+  {
+    "id": "feed_search_boolean_probe",
+    "title": "Pola tautologi pada pencarian publik",
+    "mode": "monitor",
+    "methods": ["GET", "HEAD"],
+    "path": "/",
+    "path_mode": "prefix",
+    "plugin": null,
+    "conditions": [{"source": "query", "field": "s", "op": "contains", "value": "' OR '1'='1"}]
+  },
+  {
+    "id": "feed_search_html_data_uri",
+    "title": "URI HTML pada pencarian publik",
+    "mode": "monitor",
+    "methods": ["GET", "HEAD"],
+    "path": "/",
+    "path_mode": "prefix",
+    "plugin": null,
+    "conditions": [{"source": "query", "field": "s", "op": "contains", "value": "data:text/html"}]
+  }
+]
