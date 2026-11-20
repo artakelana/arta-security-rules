@@ -11,6 +11,13 @@ try {
     $pair=sodium_crypto_sign_seed_keypair(substr($secret,0,32));
     if (!hash_equals(sodium_crypto_sign_secretkey($pair),$secret)) throw new RuntimeException('Signing secret is inconsistent');
     $public=sodium_crypto_sign_publickey($pair);$id='arta-'.substr(hash('sha256',$public),0,12);
+    $identity=json_decode(file_get_contents(dirname(__DIR__).'/publisher-public-key.json'),true,4,JSON_THROW_ON_ERROR);
+    if (!is_array($identity) || count($identity)!==3
+        || !hash_equals($id,(string)($identity['key_id']??''))
+        || !hash_equals(base64_encode($public),(string)($identity['public_key']??''))
+        || !hash_equals(hash('sha256',$public),(string)($identity['fingerprint']??''))) {
+        throw new RuntimeException('Signing key does not match the approved public publisher identity');
+    }
     $previous=0;$channel=dirname(__DIR__).'/channel/stable.json';
     if (is_file($channel)) {
         if (filesize($channel)>98304) throw new RuntimeException('Previous channel is oversized');

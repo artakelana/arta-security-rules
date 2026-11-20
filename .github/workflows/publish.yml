@@ -3,7 +3,7 @@ on:
   pull_request:
   push:
     branches: [main]
-    paths: ['rules/**', 'client/**', 'tools/**', '.github/workflows/publish.yml']
+    paths: ['rules/**', 'client/**', 'tools/**', 'publisher-public-key.json', '.github/workflows/publish.yml']
   workflow_dispatch:
   schedule:
     - cron: '17 3 * * 1,4'
